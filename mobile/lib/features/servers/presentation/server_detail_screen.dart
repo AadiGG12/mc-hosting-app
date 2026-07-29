@@ -228,9 +228,11 @@ class _ServerDetailScreenState extends ConsumerState<ServerDetailScreen> {
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: _isPerformingPowerAction
-            ? const Center(
+            ? const Padding(
                 padding: EdgeInsets.all(12),
-                child: CircularProgressIndicator(color: AppTheme.primaryAccent),
+                child: Center(
+                  child: CircularProgressIndicator(color: AppTheme.primaryAccent),
+                ),
               )
             : Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
