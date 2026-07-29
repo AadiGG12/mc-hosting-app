@@ -1,0 +1,3 @@
+class AdminRepository {
+  // Placeholder implementations
+}
