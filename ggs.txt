@@ -1,0 +1,432 @@
+---
+name: Minecraft Hosting App
+overview: Build a cross-platform Flutter app that displays your Minecraft hosting plans, provides a full native Pterodactyl server panel for logged-in users, includes a password-protected in-app admin section for plan management, and checks GitHub Releases for Android OTA updates. A small backend bridges Pterodactyl account auth and stores hosting plan data.
+todos:
+  - id: local-dev-setup
+    content: Set up local dev environment on your PC (Flutter SDK, Android Studio, Docker Desktop, Git)
+    status: completed
+  - id: scaffold-monorepo
+    content: "Create mc-hosting-app monorepo locally: Flutter mobile/ + FastAPI backend/ + Docker Compose + git init"
+    status: completed
+  - id: github-upload
+    content: Create GitHub repo, push full project, configure .gitignore and GitHub Secrets for CI
+    status: completed
+  - id: backend-auth-plans
+    content: Implement backend auth bridge (Pterodactyl Application API) + Plans CRUD API + PostgreSQL models
+    status: completed
+  - id: flutter-auth-plans
+    content: Build Flutter auth flow, public plans catalog, and in-app admin screens for Pterodactyl root admins
+    status: completed
+  - id: pterodactyl-servers-mvp
+    content: "Implement Pterodactyl Client API integration: server list, detail, power controls"
+    status: completed
+  - id: pterodactyl-console
+    content: Build native WebSocket console with JWT refresh and command input
+    status: completed
+  - id: pterodactyl-files-settings
+    content: Add file manager and server settings (startup, variables, schedules, backups)
+    status: completed
+  - id: github-ota-ci
+    content: Add GitHub Release OTA updater (Android) + GitHub Actions workflow to build/sign APK on tag
+    status: completed
+isProject: true
+---
+
+
+|            |                              |
+| ---------- | ---------------------------- |
+|            |                              |
+| **Cursor** | Code editor (already set up) |
+
+
+# Minecraft Hosting App with Pterodactyl Panel
+
+## What you are building
+
+A **Flutter** mobile app (Android + iOS from one codebase) with three main areas:
+
+1. **Public plans catalog** — RAM, player slots, price, features for each Minecraft hosting tier
+2. **User panel** — full native Pterodactyl experience (servers, power, console, files, settings)
+3. **In-app admin** — hidden section for Pterodactyl root admins to create/edit/delete hosting plans
+
+Accounts are **not stored separately** — users log in with their Pterodactyl credentials. The app talks to your existing Pterodactyl panel for all server operations.
+
+```mermaid
+flowchart TB
+  subgraph mobile [Flutter App]
+    PlansUI[Plans Catalog]
+    AuthUI[Login Screen]
+    ServerUI[Server Panel]
+    AdminUI[Plans Admin]
+    Updater[GitHub Update Checker]
+  end
+
+  subgraph backend [Lightweight Backend]
+    AuthBridge[Auth Bridge]
+    PlansAPI[Plans CRUD API]
+    DB[(PostgreSQL)]
+  end
+
+  subgraph external [External Services]
+    Ptero[Pterodactyl Panel]
+    GitHub[GitHub Releases]
+  end
+
+  AuthUI --> AuthBridge
+  AuthBridge --> Ptero
+  ServerUI --> Ptero
+  PlansUI --> PlansAPI
+  AdminUI --> PlansAPI
+  PlansAPI --> DB
+  AuthBridge --> Ptero
+  Updater --> GitHub
+```
+
+
+
+---
+
+## Recommended tech stack
+
+
+| Layer            | Choice                                                                   | Why                                                                                  |
+| ---------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
+| Mobile           | **Flutter + Dart**                                                       | Single codebase for Android and iOS; strong WebSocket/file support for Pterodactyl   |
+| State management | **Riverpod**                                                             | Clean separation for auth, servers, plans                                            |
+| Backend          | **FastAPI + PostgreSQL** (Docker)                                        | Runs on your existing VPS next to Pterodactyl; keeps Application API key server-side |
+| Secure storage   | **flutter_secure_storage**                                               | Store Pterodactyl Client API token on device                                         |
+| Android OTA      | **GitHub Releases API** + `github_release_apk_updater` or custom service | Compare semver tags, download APK, trigger install                                   |
+| CI/CD            | **GitHub Actions**                                                       | Build signed APK on every GitHub Release tag                                         |
+
+
+**Why not Kotlin-only?** You need iOS too — Flutter is the fastest path to both stores.
+
+**Why a backend is required:** Pterodactyl's **Application API key must never ship in the mobile app**. The backend validates email/password (or issues Client API keys) and stores hosting plans. User/server data still lives in Pterodactyl.
+
+---
+
+## Local development + GitHub workflow
+
+Everything is built and tested **on your Windows PC first**, then pushed to a **single GitHub repository** that holds the mobile app, backend, Docker config, and CI workflows.
+
+```mermaid
+flowchart LR
+  subgraph local [Your PC - Windows]
+    Code[Write code in Cursor]
+    BackendRun[docker compose up]
+    FlutterRun[flutter run on device/emulator]
+    LocalAPK[flutter build apk]
+  end
+
+  subgraph github [GitHub Repo]
+    MainBranch[main branch - all source code]
+    Releases[Releases - APK assets]
+    Actions[GitHub Actions - auto-build on tag]
+  end
+
+  Code --> BackendRun
+  Code --> FlutterRun
+  Code -->|git push| MainBranch
+  LocalAPK -->|manual first release| Releases
+  MainBranch -->|git tag v1.0.0| Actions
+  Actions --> Releases
+```
+
+
+
+### What you install locally (one-time)
+
+
+| Tool               | Purpose                                 |
+| ------------------ | --------------------------------------- |
+| **Flutter SDK**    | Build Android/iOS app                   |
+| **Android Studio** | Android SDK, emulator, device debugging |
+| **Docker Desktop** | Run backend + PostgreSQL locally        |
+| **Git**            | Version control (already on Windows)    |
+
+
+Optional later for iOS: Mac or cloud Mac build service (iOS builds cannot run natively on Windows).
+
+### Local dev commands (daily workflow)
+
+```bash
+# Terminal 1 — backend
+cd backend
+docker compose up          # FastAPI on :8000, PostgreSQL on :5432
+
+# Terminal 2 — mobile app
+cd mobile
+flutter pub get
+flutter run                # live reload on connected phone or emulator
+
+# Build APK locally for testing
+flutter build apk --release
+# Output: mobile/build/app/outputs/flutter-apk/app-release.apk
+```
+
+During local dev, the Flutter app points to `http://10.0.2.2:8000` (Android emulator) or your PC's LAN IP (physical device) via a `.env` / config file — not committed to git.
+
+### GitHub repository setup
+
+1. Create repo on GitHub (e.g. `yourusername/mc-hosting-app`) — **public** (so the in-app update checker can hit the Releases API without a token) or private with a read token baked into the app
+2. Initialize git locally, push all code:
+
+```bash
+git init
+git add .
+git commit -m "Initial project scaffold"
+git remote add origin https://github.com/yourusername/mc-hosting-app.git
+git branch -M main
+git push -u origin main
+```
+
+1. **What goes on GitHub (committed):**
+  - All Flutter source (`mobile/`)
+  - All backend source (`backend/`)
+  - Docker Compose + Dockerfile
+  - GitHub Actions workflows (`.github/workflows/`)
+  - `.env.example` files (templates with placeholder values)
+  - README with setup instructions
+2. **What stays OFF GitHub (`.gitignore`):**
+  - `backend/.env` (Pterodactyl Application API key, JWT secret, DB password)
+  - `mobile/.env` (local backend URL overrides)
+  - `*.keystore` / signing keys (use GitHub Secrets for CI signing instead)
+  - `build/` directories
+
+### Releasing updates via GitHub
+
+**First release (manual, from your PC):**
+
+```bash
+flutter build apk --release
+git tag v1.0.0
+git push origin v1.0.0
+# Upload app-release.apk to GitHub Releases UI, or let Actions do it
+```
+
+**Every update after that:**
+
+```bash
+# bump version in mobile/pubspec.yaml
+git commit -am "v1.1.0: add console feature"
+git tag v1.1.0
+git push origin main --tags
+# GitHub Actions auto-builds APK and attaches it to the Release
+# Users with the app installed get prompted to update
+```
+
+The in-app updater reads from the **same GitHub repo** you push to — no Play Store needed until you're ready.
+
+### Backend deployment note
+
+The backend runs locally during development. When you're ready to go live, deploy the same `backend/` folder to your VPS (Docker Compose) — that code is already on GitHub, so you can `git pull` on the server. The mobile app config switches from local IP to your production API URL.
+
+---
+
+## Authentication design (Pterodactyl sync)
+
+```mermaid
+sequenceDiagram
+  participant User
+  participant App
+  participant Backend
+  participant Ptero as Pterodactyl Panel
+
+  User->>App: Panel URL + email + password
+  App->>Backend: POST /auth/login
+  Backend->>Ptero: Verify user via Application API
+  Backend->>Ptero: Create/retrieve Client API key for user
+  Backend->>App: App JWT + Client API token + is_admin flag
+  App->>Ptero: All server ops via Client API Bearer token
+```
+
+
+
+- **Regular users:** see plans + their servers
+- **Pterodactyl root admins** (`root_admin: true`): also unlock in-app Plans Admin
+- Backend stores only: plan records + short-lived app sessions (no duplicate user database)
+
+**Config you'll provide:**
+
+- Pterodactyl panel base URL (e.g. `https://panel.yourdomain.com`)
+- Application API key (env var on backend only)
+
+---
+
+## Pterodactyl native panel (full scope)
+
+The app will call the [Pterodactyl Client API](https://pterodactyl-panel.mintlify.app/api/client/servers) directly after login:
+
+
+| Feature                       | API / mechanism                                                                         |
+| ----------------------------- | --------------------------------------------------------------------------------------- |
+| Server list & details         | `GET /api/client`                                                                       |
+| Start / stop / restart / kill | `POST /api/client/servers/{id}/power`                                                   |
+| Live console                  | WebSocket via `GET .../websocket` → JWT auth → `console output` / `send command` events |
+| File manager                  | `GET/POST/DELETE /api/client/servers/{id}/files/*`                                      |
+| Server settings               | Startup command, variables, schedules, backups, network allocations                     |
+| Account info                  | `GET /api/client/account`                                                               |
+
+
+**Important mobile notes:**
+
+- Console WebSocket tokens expire every ~10 minutes — app must listen for `token expiring` and refresh automatically
+- File uploads on mobile need chunked upload support for large worlds
+- Console UX on phone: scrollable log + command input bar (same as panel, native UI)
+
+---
+
+## Hosting plans + in-app admin
+
+**Plans data model** (PostgreSQL):
+
+```
+hosting_plans
+  id, name, slug, price_monthly, ram_mb, cpu_percent,
+  storage_gb, max_players, features (JSON array),
+  is_featured, sort_order, is_active, created_at
+```
+
+**In-app admin flow:**
+
+- Accessible from profile/settings only when `is_admin == true`
+- Screens: plan list → create/edit form → toggle active/featured
+- Calls backend `POST/PATCH/DELETE /admin/plans` (protected by app JWT + re-verify admin via Pterodactyl Application API)
+
+**Public plans screen:**
+
+- Fetches `GET /plans` (no auth required)
+- Card layout: plan name, price, RAM, players, feature bullets, "Order" button (opens your billing URL or Pterodactyl store link)
+
+---
+
+## GitHub OTA update system (Android)
+
+**Flow:**
+
+1. On app launch (Android only), call `GET https://api.github.com/repos/{owner}/{repo}/releases/latest`
+2. Compare release tag (e.g. `v1.2.0`) with `pubspec.yaml` version
+3. If newer → show dialog with release notes → download `.apk` asset → open Android installer
+
+**Requirements:**
+
+- `REQUEST_INSTALL_PACKAGES` permission in AndroidManifest
+- FileProvider for APK install on Android 7+
+- GitHub Actions workflow: on tag push → `flutter build apk --release` → attach to GitHub Release
+
+**iOS limitation (important):** Apple does not allow sideloading APK-style updates from GitHub. For iOS:
+
+- **Now (GitHub phase):** build IPA for TestFlight/manual distribution only
+- **Later (Play/App Store):** update checker redirects to Play Store / App Store instead of downloading
+
+---
+
+## Project structure
+
+```
+mc-hosting-app/
+├── mobile/                    # Flutter app
+│   ├── lib/
+│   │   ├── features/
+│   │   │   ├── auth/          # Login, token storage
+│   │   │   ├── plans/         # Public catalog + admin CRUD
+│   │   │   ├── servers/       # List, detail, power
+│   │   │   ├── console/       # WebSocket terminal
+│   │   │   ├── files/         # File browser/editor
+│   │   │   ├── settings/      # Startup, variables, schedules
+│   │   │   └── updates/       # GitHub release checker
+│   │   ├── core/              # API clients, config, routing
+│   │   └── main.dart
+│   └── pubspec.yaml
+├── backend/
+│   ├── app/
+│   │   ├── routes/            # auth, plans, admin
+│   │   ├── services/          # pterodactyl_client.py
+│   │   └── models/            # Plan SQLAlchemy model
+│   ├── docker-compose.yml     # API + PostgreSQL
+│   └── requirements.txt
+├── .github/workflows/
+│   └── release.yml            # Build APK on tag
+└── README.md
+```
+
+---
+
+## Phased delivery (recommended)
+
+Building the full Pterodactyl panel natively is large — ship in phases:
+
+### Phase 1 — Foundation (MVP)
+
+- Flutter project scaffold + navigation
+- Backend: auth bridge + plans CRUD + Docker setup
+- Login screen (panel URL + email + password)
+- Public plans catalog
+- In-app admin for plans (Pterodactyl admins)
+- Server list + server detail + power controls
+- GitHub Release updater (Android)
+- GitHub Actions CI for APK builds
+
+### Phase 2 — Console
+
+- WebSocket console with auto token refresh
+- Command input, log scroll, connection status
+- Resource stats (`stats` events)
+
+### Phase 3 — Files & settings
+
+- File browser (list, read, write, rename, delete)
+- Upload/download (with progress)
+- Startup command, environment variables
+- Schedules and backups (read + trigger)
+
+### Phase 4 — Store readiness
+
+- Play Store signing + privacy policy screen
+- iOS TestFlight build
+- Switch update checker to store URLs when published
+
+---
+
+## Key dependencies (Flutter)
+
+- `dio` — HTTP client for Pterodactyl + backend
+- `web_socket_channel` — console WebSocket
+- `flutter_secure_storage` — token storage
+- `riverpod` + `go_router` — state + navigation
+- `freezed` / `json_serializable` — API models
+- `github_release_apk_updater` or custom update service
+
+---
+
+## Security checklist
+
+- Application API key **only** on backend (env var, never in app)
+- HTTPS only for panel URL and backend
+- Client API tokens stored in `flutter_secure_storage`
+- Admin routes double-check `root_admin` on every request
+- Rate-limit login endpoint
+- Optional: certificate pinning for your panel domain
+
+---
+
+## What I need from you before implementation
+
+1. **Pterodactyl panel URL** (e.g. `https://panel.example.com`)
+2. **Application API key** (for backend `.env` — stays local, never pushed to GitHub)
+3. **GitHub username** — so we create `youruser/mc-hosting-app` (or your preferred repo name)
+4. **Local project folder** — e.g. `C:\Users\botr3\Projects\mc-hosting-app` (where we'll scaffold everything)
+5. **Sample hosting plans** (names, prices, RAM, player counts) for seed data
+6. **Order/billing link** — where "Buy this plan" should open (website, Discord, WHMCS, etc.)
+
+---
+
+## Distribution timeline
+
+
+| Stage        | Android                                  | iOS                      |
+| ------------ | ---------------------------------------- | ------------------------ |
+| Now (GitHub) | APK via GitHub Releases + in-app updater | TestFlight or manual IPA |
+| Later        | Google Play Store                        | Apple App Store          |
+
+

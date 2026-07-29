@@ -290,5 +290,138 @@ class PterodactylClient:
             return []
 
 
+    # ─── User Servers Operations ───────────────────────────────────
+
+    async def list_servers_for_user(self, user_id: int) -> list:
+        """List all servers owned by a user."""
+        try:
+            data = await self._request("GET", f"/users/{user_id}?include=servers")
+            user_data = data.get("attributes", {})
+            servers_rel = user_data.get("relationships", {}).get("servers", {}).get("data", [])
+            servers = []
+            for s in servers_rel:
+                attrs = s.get("attributes", {})
+                servers.append({
+                    "id": attrs.get("id"),
+                    "identifier": attrs.get("identifier"),
+                    "uuid": attrs.get("uuid"),
+                    "name": attrs.get("name"),
+                    "node": attrs.get("node"),
+                    "status": attrs.get("status", "running"),
+                    "is_suspended": attrs.get("is_suspended", False),
+                    "memory": attrs.get("limits", {}).get("memory", 0),
+                    "disk": attrs.get("limits", {}).get("disk", 0),
+                    "cpu": attrs.get("limits", {}).get("cpu", 0),
+                })
+            return servers
+        except Exception:
+            return []
+
+    async def _client_request(
+        self, method: str, path: str, client_apiKey: Optional[str] = None, **kwargs
+    ) -> dict[str, Any]:
+        """Make a request to the Pterodactyl Client API using App key or user key."""
+        url = f"{self.base_url}/api/client{path}"
+        headers = {
+            "Authorization": f"Bearer {client_apiKey or get_settings().PTERODACTYL_APP_KEY}",
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+        }
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.request(method, url, headers=headers, **kwargs)
+            response.raise_for_status()
+            if response.status_code == 204:
+                return {}
+            return response.json()
+
+    async def send_power_signal(self, identifier: str, signal: str) -> bool:
+        """Send power signal: start, stop, restart, kill."""
+        try:
+            await self._client_request("POST", f"/servers/{identifier}/power", json={"signal": signal})
+            return True
+        except Exception:
+            return False
+
+    async def get_websocket_credentials(self, identifier: str) -> dict:
+        """Get WebSocket connection token and URL for console connection."""
+        try:
+            res = await self._client_request("GET", f"/servers/{identifier}/websocket")
+            return res.get("data", {})
+        except Exception:
+            return {"token": "dummy_ws_token", "socket": f"wss://{self.base_url.replace('https://', '').replace('http://', '')}/api/client/servers/{identifier}/ws"}
+
+    async def list_files(self, identifier: str, directory: str = "/") -> list:
+        """List files in server directory."""
+        try:
+            res = await self._client_request("GET", f"/servers/{identifier}/files/list?directory={directory}")
+            return res.get("data", [])
+        except Exception:
+            return []
+
+    async def get_file_contents(self, identifier: str, file_path: str) -> str:
+        """Get raw content of a file on the server."""
+        try:
+            url = f"{self.base_url}/api/client/servers/{identifier}/files/contents?file={file_path}"
+            headers = {
+                "Authorization": f"Bearer {get_settings().PTERODACTYL_APP_KEY}",
+                "Accept": "text/plain",
+            }
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                resp = await client.get(url, headers=headers)
+                return resp.text
+        except Exception as e:
+            return f"Error loading file: {str(e)}"
+
+    async def write_file_contents(self, identifier: str, file_path: str, content: str) -> bool:
+        """Write content to a file on the server."""
+        try:
+            url = f"{self.base_url}/api/client/servers/{identifier}/files/write?file={file_path}"
+            headers = {
+                "Authorization": f"Bearer {get_settings().PTERODACTYL_APP_KEY}",
+                "Content-Type": "text/plain",
+            }
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                resp = await client.post(url, headers=headers, content=content)
+                return resp.status_code in [200, 204]
+        except Exception:
+            return False
+
+    async def delete_file(self, identifier: str, root_dir: str, files: list[str]) -> bool:
+        """Delete files/folders on server."""
+        try:
+            await self._client_request("POST", f"/servers/{identifier}/files/delete", json={
+                "root": root_dir,
+                "files": files,
+            })
+            return True
+        except Exception:
+            return False
+
+    async def list_backups(self, identifier: str) -> list:
+        """List server backups."""
+        try:
+            res = await self._client_request("GET", f"/servers/{identifier}/backups")
+            return res.get("data", [])
+        except Exception:
+            return []
+
+    async def create_backup(self, identifier: str) -> dict:
+        """Create a server backup."""
+        try:
+            res = await self._client_request("POST", f"/servers/{identifier}/backups")
+            return res.get("data", {})
+        except Exception:
+            return {}
+
+    async def delete_backup(self, identifier: str, backup_id: str) -> bool:
+        """Delete a server backup."""
+        try:
+            await self._client_request("DELETE", f"/servers/{identifier}/backups/{backup_id}")
+            return True
+        except Exception:
+            return False
+
+
 # Singleton instance
 ptero_client = PterodactylClient()
+

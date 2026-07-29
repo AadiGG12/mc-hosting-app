@@ -8,6 +8,11 @@ import '../features/plans/presentation/plans_screen.dart';
 import '../features/plans/presentation/plan_detail_screen.dart';
 import '../features/servers/presentation/server_list_screen.dart';
 import '../features/servers/presentation/server_detail_screen.dart';
+import '../features/console/presentation/console_screen.dart';
+import '../features/files/presentation/file_manager_screen.dart';
+import '../features/files/presentation/file_editor_screen.dart';
+import '../features/settings/presentation/server_settings_screen.dart';
+import '../features/settings/presentation/server_backups_screen.dart';
 import '../features/profile/presentation/profile_screen.dart';
 import '../features/admin/presentation/admin_screen.dart';
 import '../features/admin/presentation/admin_plans_screen.dart';
@@ -58,6 +63,30 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/servers/:id',
         builder: (context, state) => ServerDetailScreen(serverId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/servers/:id/console',
+        builder: (context, state) => ConsoleScreen(serverId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/servers/:id/files',
+        builder: (context, state) => FileManagerScreen(serverId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/servers/:id/files/editor',
+        builder: (context, state) {
+          final serverId = state.pathParameters['id']!;
+          final filePath = state.uri.queryParameters['path'] ?? 'server.properties';
+          return FileEditorScreen(serverId: serverId, filePath: filePath);
+        },
+      ),
+      GoRoute(
+        path: '/servers/:id/settings',
+        builder: (context, state) => ServerSettingsScreen(serverId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/servers/:id/backups',
+        builder: (context, state) => ServerBackupsScreen(serverId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: '/admin',
