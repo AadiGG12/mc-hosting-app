@@ -3,32 +3,45 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
-  // Brand Colors
-  static const Color primaryAccent = Color(0xFF10B981);
-  static const Color secondary = Color(0xFF3B82F6);
+  // Purple, White, Aqua Color Tokens
+  static const Color primaryPurple = Color(0xFF7C3AED);
+  static const Color primaryDarkPurple = Color(0xFF6D28D9);
+  static const Color accentAqua = Color(0xFF06B6D4);
+  static const Color accentAquaLight = Color(0xFFECFEFF);
 
-  // Night Mode Colors
-  static const Color darkScaffoldBg = Color(0xFF060913);
-  static const Color darkCardBg = Color(0xFF0F172A);
-  static const Color darkSurface = Color(0xFF1E293B);
-
-  // Backward compatibility aliases
-  static const Color cardBg = Color(0xFF0F172A);
-  static const Color surface = Color(0xFF1E293B);
-  static const Color scaffoldBg = Color(0xFF060913);
+  // Dark Mode Colors
+  static const Color darkScaffoldBg = Color(0xFF030712);
+  static const Color darkCardBg = Color(0xFF111827);
+  static const Color darkSurface = Color(0xFF1F2937);
 
   // Light Mode Colors
   static const Color lightScaffoldBg = Color(0xFFF8FAFC);
   static const Color lightCardBg = Color(0xFFFFFFFF);
   static const Color lightSurface = Color(0xFFF1F5F9);
 
+  // Text Colors
+  static const Color textPrimaryLight = Color(0xFF0F172A);
+  static const Color textPrimaryDark = Color(0xFFF9FAFB);
+  static const Color textSecondary = Color(0xFF9CA3AF);
+
+  // Border Colors
+  static const Color borderLight = Color(0xFFE2E8F0);
+  static const Color borderDark = Color(0xFF1F2937);
+
+  // Backward compatibility aliases
+  static const Color primaryAccent = primaryPurple;
+  static const Color secondary = accentAqua;
+  static const Color cardBg = darkCardBg;
+  static const Color surface = darkSurface;
+  static const Color scaffoldBg = darkScaffoldBg;
+
   // Gradients
   static const LinearGradient darkGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
     colors: [
-      Color(0xFF060913),
-      Color(0xFF0F172A),
+      Color(0xFF030712),
+      Color(0xFF111827),
       Color(0xFF020408),
     ],
   );
@@ -44,95 +57,109 @@ class AppTheme {
   );
 
   static ThemeData get darkTheme {
+    final baseTextTheme = ThemeData.dark().textTheme;
     return ThemeData(
       brightness: Brightness.dark,
       scaffoldBackgroundColor: Colors.transparent,
-      primaryColor: primaryAccent,
+      primaryColor: primaryPurple,
       cardColor: darkCardBg,
-      textTheme: GoogleFonts.interTextTheme(
-        ThemeData.dark().textTheme.copyWith(
-          headlineLarge: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-          headlineMedium: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          titleLarge: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-          titleMedium: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-          bodyLarge: const TextStyle(fontSize: 12),
-          bodyMedium: const TextStyle(fontSize: 11),
-          bodySmall: const TextStyle(fontSize: 9),
-        ),
+      textTheme: GoogleFonts.outfitTextTheme(baseTextTheme).copyWith(
+        headlineLarge: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: textPrimaryDark),
+        headlineMedium: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textPrimaryDark),
+        titleLarge: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: textPrimaryDark),
+        titleMedium: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: textPrimaryDark),
+        bodyLarge: const TextStyle(fontSize: 12, color: textPrimaryDark),
+        bodyMedium: const TextStyle(fontSize: 11, color: textSecondary),
+        bodySmall: const TextStyle(fontSize: 9, color: textSecondary),
       ),
       colorScheme: const ColorScheme.dark(
-        primary: primaryAccent,
-        secondary: secondary,
+        primary: primaryPurple,
+        secondary: accentAqua,
         surface: darkSurface,
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: primaryAccent,
+          backgroundColor: primaryPurple,
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(14),
           ),
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-          textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
+          textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
         ),
       ),
       cardTheme: CardTheme(
         color: darkCardBg,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: Colors.white.withOpacity(0.08)),
+          side: BorderSide(color: borderDark),
         ),
-        elevation: 0,
+        elevation: 2,
+      ),
+      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+        backgroundColor: Color(0xFF0A0A0C),
+        selectedItemColor: primaryPurple,
+        unselectedItemColor: textSecondary,
+        type: BottomNavigationBarType.fixed,
+        elevation: 8,
       ),
     );
   }
 
   static ThemeData get lightTheme {
+    final baseTextTheme = ThemeData.light().textTheme;
     return ThemeData(
+      useMaterial3: true,
       brightness: Brightness.light,
       scaffoldBackgroundColor: Colors.transparent,
-      primaryColor: primaryAccent,
+      primaryColor: primaryPurple,
       cardColor: lightCardBg,
-      textTheme: GoogleFonts.interTextTheme(
-        ThemeData.light().textTheme.copyWith(
-          headlineLarge: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-          headlineMedium: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          titleLarge: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-          titleMedium: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-          bodyLarge: const TextStyle(fontSize: 12),
-          bodyMedium: const TextStyle(fontSize: 11),
-          bodySmall: const TextStyle(fontSize: 9),
-        ),
+      textTheme: GoogleFonts.outfitTextTheme(baseTextTheme).copyWith(
+        headlineLarge: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: textPrimaryLight),
+        headlineMedium: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textPrimaryLight),
+        titleLarge: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: textPrimaryLight),
+        titleMedium: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: textPrimaryLight),
+        bodyLarge: const TextStyle(fontSize: 12, color: textPrimaryLight),
+        bodyMedium: const TextStyle(fontSize: 11, color: textSecondary),
+        bodySmall: const TextStyle(fontSize: 9, color: textSecondary),
       ),
       colorScheme: const ColorScheme.light(
-        primary: primaryAccent,
-        secondary: secondary,
+        primary: primaryPurple,
+        secondary: accentAqua,
         surface: lightSurface,
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: primaryAccent,
+          backgroundColor: primaryPurple,
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(14),
           ),
           padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
+          textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
         ),
       ),
       cardTheme: CardTheme(
         color: lightCardBg,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: Colors.black.withOpacity(0.06)),
+          side: const BorderSide(color: borderLight),
         ),
         elevation: 1,
+      ),
+      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+        backgroundColor: Colors.white,
+        selectedItemColor: primaryPurple,
+        unselectedItemColor: textSecondary,
+        type: BottomNavigationBarType.fixed,
+        elevation: 8,
       ),
     );
   }
 }
 
 class ThemeNotifier extends StateNotifier<ThemeMode> {
-  ThemeNotifier() : super(ThemeMode.dark); // Night mode default
+  ThemeNotifier() : super(ThemeMode.dark);
 
   void toggleTheme() {
     state = state == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark;
@@ -191,7 +218,7 @@ class ThemeToggleButton extends ConsumerWidget {
       tooltip: isDark ? 'Switch to Light Mode' : 'Switch to Night Mode',
       icon: Icon(
         isDark ? Icons.wb_sunny_outlined : Icons.nightlight_round,
-        color: isDark ? Colors.amber : Colors.indigo,
+        color: isDark ? Colors.amber : AppTheme.primaryPurple,
       ),
       onPressed: () {
         ref.read(themeProvider.notifier).toggleTheme();

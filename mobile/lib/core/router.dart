@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../features/auth/presentation/login_screen.dart';
 import '../features/auth/presentation/auth_provider.dart';
+import '../features/auth/presentation/login_screen.dart';
+import '../features/splash/presentation/splash_screen.dart';
+import '../features/home/presentation/home_screen.dart';
 import '../features/plans/presentation/plans_screen.dart';
-import '../features/plans/presentation/plan_detail_screen.dart';
+import '../features/plans/presentation/cart_screen.dart';
 import '../features/servers/presentation/server_list_screen.dart';
 import '../features/servers/presentation/server_detail_screen.dart';
 import '../features/console/presentation/console_screen.dart';
@@ -18,7 +20,7 @@ import '../features/network/presentation/network_screen.dart';
 import '../features/activity/presentation/activity_screen.dart';
 import '../features/settings/presentation/server_settings_screen.dart';
 import '../features/settings/presentation/server_backups_screen.dart';
-import '../features/profile/presentation/profile_screen.dart';
+import '../features/profile/presentation/account_screen.dart';
 import '../features/admin/presentation/admin_screen.dart';
 import '../features/admin/presentation/admin_users_screen.dart';
 import '../features/admin/presentation/admin_servers_screen.dart';
@@ -27,8 +29,6 @@ import '../features/admin/presentation/admin_nests_screen.dart';
 import '../features/admin/presentation/admin_plans_screen.dart';
 import '../features/admin/presentation/plan_form_screen.dart';
 import '../features/admin/presentation/admin_orders_screen.dart';
-import '../features/splash/presentation/splash_screen.dart';
-import '../features/home/presentation/home_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
@@ -39,11 +39,11 @@ final routerProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) {
       final isSplash = state.matchedLocation == '/splash';
       if (isSplash) return null;
-      
+
       final isLoggingIn = state.matchedLocation == '/login';
       if (authState is AuthUnauthenticated && !isLoggingIn) return '/login';
       if (authState is AuthAuthenticated && isLoggingIn) return '/home/plans';
-      if (state.matchedLocation.startsWith('/admin') && !isAdmin) return '/home/plans';
+      if (state.matchedLocation.startsWith('/home/admin') && !isAdmin) return '/home/plans';
       if (state.matchedLocation == '/') return '/login';
       return null;
     },
@@ -64,18 +64,23 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const PlansScreen(),
           ),
           GoRoute(
+            path: '/home/cart',
+            builder: (context, state) => const CartScreen(),
+          ),
+          GoRoute(
             path: '/home/servers',
             builder: (context, state) => const ServerListScreen(),
           ),
           GoRoute(
-            path: '/home/profile',
-            builder: (context, state) => const ProfileScreen(),
+            path: '/home/account',
+            builder: (context, state) => const AccountScreen(),
+          ),
+          GoRoute(
+            path: '/home/admin',
+            builder: (context, state) => const AdminScreen(),
+            redirect: (context, state) => isAdmin ? null : '/home/plans',
           ),
         ],
-      ),
-      GoRoute(
-        path: '/plans/:slug',
-        builder: (context, state) => PlanDetailScreen(slug: state.pathParameters['slug']!),
       ),
       GoRoute(
         path: '/servers/:id',
@@ -125,10 +130,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/servers/:id/backups',
         builder: (context, state) => ServerBackupsScreen(serverId: state.pathParameters['id']!),
       ),
-      GoRoute(
-        path: '/admin',
-        builder: (context, state) => const AdminScreen(),
-      ),
+      // Admin sub-routes
       GoRoute(
         path: '/admin/users',
         builder: (context, state) => const AdminUsersScreen(),

@@ -3,7 +3,7 @@
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, EmailStr
 
-from app.auth import create_access_token
+from app.auth import create_access_token, get_current_user
 from app.services.pterodactyl_client import ptero_client
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -83,14 +83,10 @@ async def login(request: LoginRequest):
 
 
 @router.get("/me")
-async def get_me(current_user: dict = None):
+async def get_me(current_user: dict = Depends(get_current_user)):
     """Get the current user's info from their JWT token.
 
     This is a lightweight endpoint that just decodes the JWT.
     For fresh Pterodactyl data, the app calls the panel directly.
     """
-    from app.auth import get_current_user
-    from fastapi import Depends
-
-    # This will be properly wired in the router
     return current_user

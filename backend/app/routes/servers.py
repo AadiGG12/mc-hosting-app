@@ -119,3 +119,10 @@ async def delete_backup(identifier: str, backup_id: str, user: dict = Depends(ge
     """Delete a server backup."""
     success = await ptero_client.delete_backup(identifier, backup_id)
     return {"success": success}
+
+
+@router.get("/{identifier}/databases")
+async def list_databases(identifier: str, user: dict = Depends(get_current_user)):
+    """List databases for a server via Pterodactyl Application API."""
+    databases = await ptero_client.list_databases(identifier)
+    return databases

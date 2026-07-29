@@ -421,6 +421,15 @@ class PterodactylClient:
         except Exception:
             return False
 
+    async def list_databases(self, identifier: str) -> list:
+        """List databases for a server via Application API."""
+        try:
+            data = await self._request("GET", f"/servers/{identifier}?include=databases")
+            rel = data.get("attributes", {}).get("relationships", {}).get("databases", {}).get("data", [])
+            return rel
+        except Exception:
+            return []
+
 
 # Singleton instance
 ptero_client = PterodactylClient()

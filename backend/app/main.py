@@ -2,11 +2,12 @@
 
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import create_tables
-from app.routes import auth, plans, admin, payments
+from app.routes import auth, plans, admin, payments, servers
+from app.services.websocket_manager import plan_ws_manager
 
 
 @asynccontextmanager
@@ -47,6 +48,45 @@ app.include_router(payments.router)
 app.include_router(servers.router)
 
 
+# ─── Real-Time Plan Updates WebSocket ───────────────────────────
+
+@app.websocket("/ws/plans")
+async def plans_websocket(websocket: WebSocket):
+    """
+    WebSocket endpoint for real-time plan updates.
+
+    When an admin creates, updates, or deletes a hosting plan, this WebSocket
+    broadcasts the change to all connected clients. The mobile app uses this
+    to automatically refresh the plans catalog without manual refresh.
+
+    Message format:
+        {"event": "plans_updated", "action": "create|update|delete", "plan": {...}}
+        {"event": "plans_refresh_all"}  # Full catalog refresh needed
+    """
+    await plan_ws_manager.connect(websocket)
+    try:
+        while True:
+            # Keep the connection alive by reading messages (client may send pings)
+            data = await websocket.receive_text()
+            # If client sends a ping, respond with pong
+            if data == "ping":
+                await websocket.send_text("pong")
+    except WebSocketDisconnect:
+        plan_ws_manager.disconnect(websocket)
+    except Exception:
+        plan_ws_manager.disconnect(websocket)
+
+
+@app.get("/ws/plans/status", tags=["WebSocket"])
+async def plans_ws_status():
+    """Check how many clients are currently connected for real-time updates."""
+    return {
+        "endpoint": "/ws/plans",
+        "connected_clients": plan_ws_manager.client_count,
+        "status": "active",
+    }
+
+
 @app.get("/", tags=["Health"])
 async def root():
     """Health check endpoint."""
@@ -65,4 +105,5 @@ async def health():
         "database": "connected",
         "pterodactyl": "configured",
         "razorpay": "configured",
+        "realtime_ws_clients": plan_ws_manager.client_count,
     }

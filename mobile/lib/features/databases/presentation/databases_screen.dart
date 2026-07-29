@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:dio/dio.dart';
+import '../../../core/api_client.dart';
 import '../../../core/theme.dart';
-import '../../../core/constants.dart';
 
 class DatabasesScreen extends StatefulWidget {
   final String serverId;
@@ -12,14 +11,6 @@ class DatabasesScreen extends StatefulWidget {
 }
 
 class _DatabasesScreenState extends State<DatabasesScreen> {
-  final Dio _dio = Dio(BaseOptions(
-    baseUrl: Constants.panelUrl,
-    headers: {
-      'Authorization': 'Bearer ptla_I4w35cvG1UEYzBRX7yQ4cKPHs4HZpz3NSqfZsgn7HCF',
-      'Accept': 'application/json',
-    },
-  ));
-
   List<Map<String, dynamic>> _databases = [];
   bool _isLoading = true;
 
@@ -32,11 +23,17 @@ class _DatabasesScreenState extends State<DatabasesScreen> {
   Future<void> _loadDatabases() async {
     setState(() => _isLoading = true);
     try {
-      final res = await _dio.get('/api/application/servers/${widget.serverId}?include=databases');
-      final rel = res.data['attributes']?['relationships']?['databases']?['data'] as List?;
-      if (rel != null) {
+      // Route through backend API — keeps Pterodactyl API key server-side
+      final res = await ApiClient.dio.get('/servers/${widget.serverId}/databases');
+      final list = res.data as List;
+      if (list.isNotEmpty) {
         setState(() {
-          _databases = rel.map((e) => e['attributes'] as Map<String, dynamic>).toList();
+          _databases = list.map((e) {
+            if (e is Map<String, dynamic> && e.containsKey('attributes')) {
+              return e['attributes'] as Map<String, dynamic>;
+            }
+            return e as Map<String, dynamic>;
+          }).toList();
         });
       } else {
         _setMockDatabases();

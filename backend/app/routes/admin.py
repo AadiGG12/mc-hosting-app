@@ -11,6 +11,7 @@ from app.auth import get_admin_user
 from app.database import get_db
 from app.models.plan import HostingPlan
 from app.models.order import Order
+from app.services.websocket_manager import plan_ws_manager
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
@@ -178,6 +179,27 @@ async def admin_create_plan(
     db.add(plan)
     await db.flush()
     await db.refresh(plan)
+
+    # Broadcast real-time update to all connected clients
+    await plan_ws_manager.broadcast({
+        "event": "plans_updated",
+        "action": "create",
+        "plan": {
+            "id": plan.id,
+            "name": plan.name,
+            "slug": plan.slug,
+            "price_monthly": float(plan.price_monthly),
+            "ram_mb": plan.ram_mb,
+            "storage_gb": plan.storage_gb,
+            "cpu_percent": plan.cpu_percent,
+            "max_players": plan.max_players,
+            "features": plan.features,
+            "is_featured": plan.is_featured,
+            "sort_order": plan.sort_order,
+            "is_active": plan.is_active,
+        },
+    })
+
     return plan
 
 
@@ -210,6 +232,27 @@ async def admin_update_plan(
 
     await db.flush()
     await db.refresh(plan)
+
+    # Broadcast real-time update to all connected clients
+    await plan_ws_manager.broadcast({
+        "event": "plans_updated",
+        "action": "update",
+        "plan": {
+            "id": plan.id,
+            "name": plan.name,
+            "slug": plan.slug,
+            "price_monthly": float(plan.price_monthly),
+            "ram_mb": plan.ram_mb,
+            "storage_gb": plan.storage_gb,
+            "cpu_percent": plan.cpu_percent,
+            "max_players": plan.max_players,
+            "features": plan.features,
+            "is_featured": plan.is_featured,
+            "sort_order": plan.sort_order,
+            "is_active": plan.is_active,
+        },
+    })
+
     return plan
 
 
@@ -233,6 +276,19 @@ async def admin_delete_plan(
 
     plan.is_active = False
     await db.flush()
+
+    # Broadcast real-time update to all connected clients
+    await plan_ws_manager.broadcast({
+        "event": "plans_updated",
+        "action": "delete",
+        "plan": {
+            "id": plan.id,
+            "name": plan.name,
+            "slug": plan.slug,
+            "is_active": False,
+        },
+    })
+
     return {"message": f"Plan '{plan.name}' deactivated"}
 
 
