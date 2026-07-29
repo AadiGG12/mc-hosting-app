@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/auth_repository.dart';
 import '../data/auth_models.dart';
@@ -37,12 +38,21 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> login(String email, String password) async {
     state = AuthLoading();
     try {
-      final res = await _repo.login(email, password);
+      final res = await _repo.login(email.trim(), password);
       final token = res['access_token'];
       final user = User.fromJson(res['user']);
       await _repo.saveToken(token);
       await _repo.saveUser(user);
       state = AuthAuthenticated(user, token);
+    } on DioException catch (e) {
+      String msg = 'Failed to connect to backend server';
+      if (e.response != null && e.response?.data is Map && e.response?.data['detail'] != null) {
+        msg = e.response?.data['detail'].toString() ?? msg;
+      } else if (e.type == DioExceptionType.connectionTimeout || e.type == DioExceptionType.connectionError) {
+        msg = 'Connection refused. Check your internet connection or Server URL settings.';
+      }
+      state = AuthError(msg);
+      state = AuthUnauthenticated();
     } catch (e) {
       state = AuthError(e.toString());
       state = AuthUnauthenticated();

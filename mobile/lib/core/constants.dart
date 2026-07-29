@@ -1,6 +1,6 @@
 class Constants {
-  static const String backendUrl = 'http://10.0.2.2:8000';
+  static const String backendUrl = 'https://panel.rencloud.online';
   static const String panelUrl = 'https://panel.rencloud.online';
-  static const String githubRepo = 'addiigg/mc-hosting-app';
+  static const String githubRepo = 'AadiGG12/mc-hosting-app';
   static const String appName = 'RenCloud';
 }
