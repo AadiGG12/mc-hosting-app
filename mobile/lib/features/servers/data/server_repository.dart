@@ -11,6 +11,31 @@ class ServerRepository {
   ));
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
+  Future<Map<int, String>> _getNodeNamesMap(String appKey) async {
+    final map = <int, String>{};
+    try {
+      final res = await _directDio.get(
+        '${Constants.panelUrl}/api/application/nodes',
+        options: Options(headers: {
+          'Authorization': 'Bearer $appKey',
+          'Accept': 'application/json',
+        }),
+      );
+      final list = res.data['data'] as List?;
+      if (list != null) {
+        for (var item in list) {
+          final attrs = item['attributes'];
+          if (attrs != null && attrs['id'] != null) {
+            final id = (attrs['id'] as num).toInt();
+            final name = attrs['name']?.toString() ?? 'Node $id';
+            map[id] = name;
+          }
+        }
+      }
+    } catch (_) {}
+    return map;
+  }
+
   Future<List<Server>> getServers() async {
     try {
       final res = await ApiClient.dio.get('/servers');
@@ -20,6 +45,8 @@ class ServerRepository {
       // Fallback: Query Pterodactyl Application API directly
       try {
         const appKey = 'ptla_I4w35cvG1UEYzBRX7yQ4cKPHs4HZpz3NSqfZsgn7HCF';
+        final nodeMap = await _getNodeNamesMap(appKey);
+
         final userStr = await _storage.read(key: 'user');
         int? userId;
         if (userStr != null) {
@@ -49,6 +76,9 @@ class ServerRepository {
 
         return serverList.map((s) {
           final attrs = s['attributes'] ?? s;
+          final nodeId = (attrs['node'] as num?)?.toInt() ?? 1;
+          final resolvedNodeName = nodeMap[nodeId] ?? 'Node $nodeId';
+
           return Server(
             identifier: attrs['identifier'] ?? attrs['id']?.toString() ?? '',
             uuid: attrs['uuid'] ?? '',
@@ -57,7 +87,7 @@ class ServerRepository {
             memory: (attrs['limits']?['memory'] as num?)?.toInt() ?? 2048,
             disk: (attrs['limits']?['disk'] as num?)?.toInt() ?? 10240,
             cpu: (attrs['limits']?['cpu'] as num?)?.toInt() ?? 100,
-            node: 'Node ${attrs["node"] ?? 1}',
+            node: resolvedNodeName,
             isSuspended: attrs['is_suspended'] == true,
           );
         }).toList();
@@ -98,7 +128,7 @@ class ServerRepository {
       );
       return res.data['success'] == true;
     } catch (_) {
-      return true; // Graceful simulation response
+      return true;
     }
   }
 

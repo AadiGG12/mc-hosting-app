@@ -5,11 +5,28 @@ import '../../../core/theme.dart';
 import '../data/server_models.dart';
 import 'servers_provider.dart';
 
-class ServerListScreen extends ConsumerWidget {
+enum ServerSortOption { node, name, ram, status }
+
+class ServerListScreen extends ConsumerStatefulWidget {
   const ServerListScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ServerListScreen> createState() => _ServerListScreenState();
+}
+
+class _ServerListScreenState extends ConsumerState<ServerListScreen> {
+  final TextEditingController _searchCtrl = TextEditingController();
+  ServerSortOption _sortOption = ServerSortOption.node;
+  String _selectedNodeFilter = 'All Nodes';
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final serversAsync = ref.watch(serversProvider);
 
     return GradientScaffold(
@@ -32,16 +49,208 @@ class ServerListScreen extends ConsumerWidget {
         onRefresh: () async => ref.refresh(serversProvider),
         color: AppTheme.primaryAccent,
         child: serversAsync.when(
-          data: (servers) => servers.isEmpty
-              ? _buildEmptyState(context)
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: servers.length,
-                  itemBuilder: (context, index) {
-                    final s = servers[index];
-                    return _buildServerCard(context, s);
-                  },
+          data: (servers) {
+            if (servers.isEmpty) return _buildEmptyState(context);
+
+            // Extract unique node names for node filter chips
+            final uniqueNodes = <String>{'All Nodes'};
+            for (var s in servers) {
+              uniqueNodes.add(s.node);
+            }
+
+            // Filter servers by Search text & Node filter
+            final searchQuery = _searchCtrl.text.toLowerCase().trim();
+            var filtered = servers.where((s) {
+              final matchesSearch = searchQuery.isEmpty ||
+                  s.name.toLowerCase().contains(searchQuery) ||
+                  s.identifier.toLowerCase().contains(searchQuery) ||
+                  s.node.toLowerCase().contains(searchQuery);
+
+              final matchesNode = _selectedNodeFilter == 'All Nodes' || s.node == _selectedNodeFilter;
+
+              return matchesSearch && matchesNode;
+            }).toList();
+
+            // Sort servers according to selected option
+            if (_sortOption == ServerSortOption.node) {
+              filtered.sort((a, b) => a.node.compareTo(b.node));
+            } else if (_sortOption == ServerSortOption.name) {
+              filtered.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+            } else if (_sortOption == ServerSortOption.ram) {
+              filtered.sort((a, b) => b.memory.compareTo(a.memory));
+            } else if (_sortOption == ServerSortOption.status) {
+              filtered.sort((a, b) => a.status.index.compareTo(b.status.index));
+            }
+
+            return Column(
+              children: [
+                // Search Bar
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: TextField(
+                    controller: _searchCtrl,
+                    onChanged: (val) => setState(() {}),
+                    decoration: InputDecoration(
+                      hintText: 'Search servers by name, ID, or node...',
+                      prefixIcon: const Icon(Icons.search, color: AppTheme.secondary),
+                      suffixIcon: searchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear, size: 18),
+                              onPressed: () {
+                                _searchCtrl.clear();
+                                setState(() {});
+                              },
+                            )
+                          : null,
+                      filled: true,
+                      fillColor: AppTheme.surface,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
                 ),
+
+                // Sort & Node Filter Bar
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  child: Row(
+                    children: [
+                      // Sort Dropdown Button
+                      PopupMenuButton<ServerSortOption>(
+                        initialValue: _sortOption,
+                        onSelected: (opt) {
+                          setState(() {
+                            _sortOption = opt;
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: AppTheme.surface,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.white.withOpacity(0.1)),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.sort, size: 16, color: AppTheme.primaryAccent),
+                              const SizedBox(width: 6),
+                              Text(
+                                'Sort: ${_sortOption.name.toUpperCase()}',
+                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                              ),
+                              const Icon(Icons.arrow_drop_down, size: 18),
+                            ],
+                          ),
+                        ),
+                        itemBuilder: (context) => const [
+                          PopupMenuItem(
+                            value: ServerSortOption.node,
+                            child: Text('Sort by Node'),
+                          ),
+                          PopupMenuItem(
+                            value: ServerSortOption.name,
+                            child: Text('Sort by Name'),
+                          ),
+                          PopupMenuItem(
+                            value: ServerSortOption.ram,
+                            child: Text('Sort by RAM'),
+                          ),
+                          PopupMenuItem(
+                            value: ServerSortOption.status,
+                            child: Text('Sort by Status'),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(width: 8),
+
+                      // Node Filter Chips
+                      ...uniqueNodes.map((nodeName) {
+                        final isSelected = _selectedNodeFilter == nodeName;
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 6),
+                          child: FilterChip(
+                            selected: isSelected,
+                            label: Text(
+                              nodeName,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: isSelected ? Colors.white : Colors.grey,
+                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                              ),
+                            ),
+                            selectedColor: AppTheme.primaryAccent,
+                            backgroundColor: AppTheme.surface,
+                            onSelected: (selected) {
+                              setState(() {
+                                _selectedNodeFilter = nodeName;
+                              });
+                            },
+                          ),
+                        );
+                      }),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+
+                // Server List Body
+                Expanded(
+                  child: filtered.isEmpty
+                      ? const Center(
+                          child: Text(
+                            'No servers match your search or filter',
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                        )
+                      : ListView.builder(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          itemCount: filtered.length,
+                          itemBuilder: (context, index) {
+                            final s = filtered[index];
+
+                            // If sorting by node, show node header when node changes
+                            bool showNodeHeader = false;
+                            if (_sortOption == ServerSortOption.node) {
+                              if (index == 0 || filtered[index - 1].node != s.node) {
+                                showNodeHeader = true;
+                              }
+                            }
+
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (showNodeHeader) ...[
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 12, bottom: 8),
+                                    child: Row(
+                                      children: [
+                                        const Icon(Icons.dns, size: 16, color: AppTheme.secondary),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          s.node.toUpperCase(),
+                                          style: const TextStyle(
+                                            color: AppTheme.secondary,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 13,
+                                            letterSpacing: 1,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                                _buildServerCard(context, s),
+                              ],
+                            );
+                          },
+                        ),
+                ),
+              ],
+            );
+          },
           loading: () => const Center(
             child: CircularProgressIndicator(color: AppTheme.primaryAccent),
           ),
@@ -102,7 +311,7 @@ class ServerListScreen extends ConsumerWidget {
     final statusColor = isOnline ? AppTheme.primaryAccent : Colors.redAccent;
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
       ),
@@ -161,16 +370,26 @@ class ServerListScreen extends ConsumerWidget {
                 ],
               ),
               const SizedBox(height: 8),
-              Text(
-                'ID: ${s.identifier} • ${s.node}',
-                style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+              Row(
+                children: [
+                  const Icon(Icons.dns_outlined, size: 14, color: AppTheme.secondary),
+                  const SizedBox(width: 4),
+                  Text(
+                    s.node,
+                    style: const TextStyle(color: AppTheme.secondary, fontSize: 13, fontWeight: FontWeight.w600),
+                  ),
+                  Text(
+                    ' • ID: ${s.identifier}',
+                    style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+                  ),
+                ],
               ),
               const Divider(color: Colors.white10, height: 24),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
                   _buildStatItem(Icons.memory, '${s.memory} MB', 'RAM'),
-                  _buildStatItem(Icons.storage, '${s.disk / 1024} GB', 'Disk'),
+                  _buildStatItem(Icons.storage, '${(s.disk / 1024).toStringAsFixed(1)} GB', 'Disk'),
                   _buildStatItem(Icons.speed, '${s.cpu}%', 'CPU Limit'),
                 ],
               ),
