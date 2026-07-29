@@ -1,6 +1,6 @@
 name: rencloud
 description: RenCloud Minecraft Hosting App
-version: 1.4.0+7
+version: 1.4.1+8
 publish_to: none
 
 environment:
