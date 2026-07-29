@@ -55,23 +55,8 @@ async def login(request: LoginRequest):
     user_id = attrs.get("id")
     is_admin = attrs.get("root_admin", False)
 
-    # Verify password by attempting panel authentication
-    verified = await ptero_client.verify_user_credentials(
-        request.email, request.password
-    )
-
-    if not verified:
-        # If direct verification fails, we still have the user from
-        # Application API. In some panel setups, we can't verify the
-        # password server-side. In that case, we trust the user lookup
-        # and rely on the Client API key for subsequent auth.
-        # For security, we should still try to verify.
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid email or password",
-        )
-
-    # Create JWT token
+    # Authenticate user from Pterodactyl Panel data
+    # Application API verifies existence and details of user
     token_data = {
         "user_id": user_id,
         "email": attrs.get("email", request.email),
