@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/api_client.dart';
 import '../../../core/theme.dart';
 import 'auth_provider.dart';
 
@@ -13,37 +12,11 @@ class LoginScreen extends ConsumerStatefulWidget {
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
-  final _serverCtrl = TextEditingController();
-  bool _showServerSettings = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadServerUrl();
-  }
-
-  Future<void> _loadServerUrl() async {
-    final url = await ApiClient.getBaseUrl();
-    _serverCtrl.text = url;
-  }
-
-  Future<void> _saveServerUrl() async {
-    await ApiClient.setBaseUrl(_serverCtrl.text);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Server API URL updated to: ${_serverCtrl.text}'),
-          backgroundColor: AppTheme.primaryAccent,
-        ),
-      );
-    }
-  }
 
   @override
   void dispose() {
     _emailCtrl.dispose();
     _passCtrl.dispose();
-    _serverCtrl.dispose();
     super.dispose();
   }
 
@@ -80,7 +53,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               // Logo Image from assets
               Image.asset(
                 'assets/images/logo.png',
-                height: 90,
+                height: 100,
                 errorBuilder: (context, error, stackTrace) => Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -94,7 +67,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               const Text(
                 'RenCloud',
                 style: TextStyle(
-                  fontSize: 30,
+                  fontSize: 32,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 1.2,
                 ),
@@ -102,20 +75,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               const SizedBox(height: 6),
               Text(
                 'Minecraft Hosting & Control Panel',
-                style: TextStyle(color: Colors.grey.shade400, fontSize: 13),
+                style: TextStyle(color: Colors.grey.shade400, fontSize: 14),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 36),
               Card(
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
                   side: BorderSide(color: Colors.white.withOpacity(0.08)),
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.all(20.0),
+                  padding: const EdgeInsets.all(24.0),
                   child: Column(
                     children: [
                       TextField(
                         controller: _emailCtrl,
+                        keyboardType: TextInputType.emailAddress,
                         decoration: InputDecoration(
                           hintText: 'Pterodactyl Email',
                           prefixIcon: const Icon(Icons.email_outlined, color: AppTheme.secondary),
@@ -181,57 +155,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
-              TextButton.icon(
-                onPressed: () {
-                  setState(() {
-                    _showServerSettings = !_showServerSettings;
-                  });
-                },
-                icon: Icon(
-                  _showServerSettings ? Icons.tune : Icons.settings_outlined,
-                  size: 18,
-                  color: Colors.grey,
-                ),
-                label: Text(
-                  _showServerSettings ? 'Hide Server Settings' : 'Server API Settings',
-                  style: const TextStyle(color: Colors.grey, fontSize: 13),
-                ),
-              ),
-              if (_showServerSettings) ...[
-                const SizedBox(height: 8),
-                Card(
-                  color: AppTheme.surface,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  child: Padding(
-                    padding: const EdgeInsets.all(14.0),
-                    child: Column(
-                      children: [
-                        TextField(
-                          controller: _serverCtrl,
-                          style: const TextStyle(fontSize: 13),
-                          decoration: InputDecoration(
-                            labelText: 'API Server Endpoint URL',
-                            labelStyle: const TextStyle(color: Colors.grey),
-                            filled: true,
-                            fillColor: const Color(0xFF030508),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.secondary,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          ),
-                          onPressed: _saveServerUrl,
-                          child: const Text('Save Server URL'),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
             ],
           ),
         ),

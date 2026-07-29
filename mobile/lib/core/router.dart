@@ -15,6 +15,10 @@ import '../features/settings/presentation/server_settings_screen.dart';
 import '../features/settings/presentation/server_backups_screen.dart';
 import '../features/profile/presentation/profile_screen.dart';
 import '../features/admin/presentation/admin_screen.dart';
+import '../features/admin/presentation/admin_users_screen.dart';
+import '../features/admin/presentation/admin_servers_screen.dart';
+import '../features/admin/presentation/admin_nodes_screen.dart';
+import '../features/admin/presentation/admin_nests_screen.dart';
 import '../features/admin/presentation/admin_plans_screen.dart';
 import '../features/admin/presentation/plan_form_screen.dart';
 import '../features/admin/presentation/admin_orders_screen.dart';
@@ -91,6 +95,22 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/admin',
         builder: (context, state) => const AdminScreen(),
+      ),
+      GoRoute(
+        path: '/admin/users',
+        builder: (context, state) => const AdminUsersScreen(),
+      ),
+      GoRoute(
+        path: '/admin/servers',
+        builder: (context, state) => const AdminServersScreen(),
+      ),
+      GoRoute(
+        path: '/admin/nodes',
+        builder: (context, state) => const AdminNodesScreen(),
+      ),
+      GoRoute(
+        path: '/admin/nests',
+        builder: (context, state) => const AdminNestsScreen(),
       ),
       GoRoute(
         path: '/admin/plans',
