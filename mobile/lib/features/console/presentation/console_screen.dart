@@ -36,22 +36,49 @@ class _ConsoleScreenState extends ConsumerState<ConsoleScreen> {
   Future<void> _connectWebSocket() async {
     setState(() {
       _isConnecting = true;
-      _statusMessage = 'Fetching WebSocket token...';
+      _statusMessage = 'Fetching WebSocket credentials...';
     });
 
     try {
       final repo = ref.read(serverRepoProvider);
       final wsCreds = await repo.getWebsocketCredentials(widget.serverId);
-      
-      final socketUrl = wsCreds['socket'] ?? '';
+
+      String socketUrl = wsCreds['socket'] ?? '';
       final token = wsCreds['token'] ?? '';
 
       if (socketUrl.isEmpty) {
         setState(() {
           _isConnecting = false;
-          _statusMessage = 'Failed to get socket URL';
+          _statusMessage = 'No WebSocket URL';
         });
-        _appendLog('[SYSTEM ERROR] Unable to retrieve Pterodactyl WebSocket endpoint.');
+        _appendLog('[SYSTEM] ⚠ Could not retrieve WebSocket endpoint from panel.');
+        _appendLog('[SYSTEM] The node may be offline or unreachable.');
+        return;
+      }
+
+      // Fix URL scheme: ensure wss:// (not https://)
+      if (socketUrl.startsWith('https://')) {
+        socketUrl = 'wss://' + socketUrl.substring(8);
+      } else if (socketUrl.startsWith('http://')) {
+        socketUrl = 'ws://' + socketUrl.substring(7);
+      }
+
+      // Remove port :0 which causes invalid WebSocket connection
+      socketUrl = socketUrl.replaceAll(':0/', '/').replaceAll(':0#', '#').replaceAll(':0', '');
+
+      // Strip URL fragment (#...) — breaks WebSocket upgrade
+      if (socketUrl.contains('#')) {
+        socketUrl = socketUrl.split('#')[0];
+      }
+
+      if (token.isEmpty) {
+        setState(() {
+          _isConnecting = false;
+          _statusMessage = 'Auth failed — node may be offline';
+        });
+        _appendLog('[SYSTEM] ⚠ WebSocket token is empty. Session login may have failed.');
+        _appendLog('[SYSTEM] Node might be offline or not accepting connections.');
+        _appendLog('[SYSTEM] Try refreshing or check the panel: https://panel.rencloud.online');
         return;
       }
 
@@ -70,7 +97,7 @@ class _ConsoleScreenState extends ConsumerState<ConsoleScreen> {
         _statusMessage = 'Connected';
       });
 
-      _appendLog('[SYSTEM] Connected to server console stream.');
+      _appendLog('[SYSTEM] ✓ Connected to console stream.');
 
       _subscription = _channel!.stream.listen(
         (message) {
@@ -84,10 +111,16 @@ class _ConsoleScreenState extends ConsumerState<ConsoleScreen> {
                 _appendLog(line.toString());
               }
             } else if (event == 'status' && args != null && args.isNotEmpty) {
-              _appendLog('[STATUS CHANGE] Server state: ${args[0]}');
+              _appendLog('[STATUS] Server state: ${args[0]}');
             } else if (event == 'token expiring') {
-              _appendLog('[SYSTEM] WebSocket token expiring, refreshing...');
+              _appendLog('[SYSTEM] Token expiring, refreshing...');
               _refreshToken(token);
+            } else if (event == 'jwt error') {
+              setState(() {
+                _isConnected = false;
+                _statusMessage = 'Auth error';
+              });
+              _appendLog('[SYSTEM] ⚠ Authentication rejected by panel. Token may be invalid.');
             }
           } catch (_) {
             _appendLog(message.toString());
@@ -96,26 +129,32 @@ class _ConsoleScreenState extends ConsumerState<ConsoleScreen> {
         onError: (error) {
           setState(() {
             _isConnected = false;
-            _statusMessage = 'Connection error';
+            _statusMessage = 'Node unreachable';
           });
-          _appendLog('[ERROR] WebSocket error: $error');
+          // Friendly message instead of raw WebSocketChannelException
+          _appendLog('[SYSTEM] ⚠ Connection lost. The node may be offline or the server is not running.');
+          _appendLog('[SYSTEM] Start the server from the power controls to reconnect.');
         },
         onDone: () {
           setState(() {
             _isConnected = false;
             _statusMessage = 'Disconnected';
           });
-          _appendLog('[SYSTEM] Connection closed.');
+          _appendLog('[SYSTEM] Console stream disconnected.');
         },
       );
     } catch (e) {
       setState(() {
         _isConnecting = false;
-        _statusMessage = 'Connection failed';
+        _statusMessage = 'Node offline';
       });
-      _appendLog('[ERROR] Connection exception: $e');
+      // Never show raw WebSocketChannelException to user
+      _appendLog('[SYSTEM] ⚠ Could not connect to the server console.');
+      _appendLog('[SYSTEM] The node hosting this server may be temporarily offline.');
+      _appendLog('[SYSTEM] Try again later or check status at https://panel.rencloud.online');
     }
   }
+
 
   Future<void> _refreshToken(String oldToken) async {
     try {

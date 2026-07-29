@@ -108,7 +108,16 @@ class _ServerDetailScreenState extends ConsumerState<ServerDetailScreen> {
 
   Widget _buildServerHeaderCard(Server server) {
     final isOnline = server.status == ServerStatus.running;
-    final statusColor = isOnline ? AppTheme.primaryAccent : Colors.redAccent;
+    final isOffline = server.status == ServerStatus.offline;
+    final isSuspended = server.status == ServerStatus.suspended;
+
+    final statusColor = isOnline
+        ? AppTheme.primaryAccent
+        : isOffline
+            ? Colors.grey
+            : isSuspended
+                ? Colors.orange
+                : Colors.redAccent;
 
     return Card(
       shape: RoundedRectangleBorder(

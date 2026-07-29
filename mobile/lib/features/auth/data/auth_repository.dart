@@ -19,10 +19,12 @@ class AuthRepository {
         'email': email,
         'password': password,
       });
+      // Save credentials for Pterodactyl client API calls (WebSocket)
+      await storage.write(key: 'user_email', value: email);
+      await storage.write(key: 'user_password', value: password);
       return response.data;
     } catch (e) {
       // 2. Direct Pterodactyl Application API Fallback
-      // In case local/remote FastAPI backend server is offline or unreachable
       try {
         const appKey = 'ptla_I4w35cvG1UEYzBRX7yQ4cKPHs4HZpz3NSqfZsgn7HCF';
         final url = '${Constants.panelUrl}/api/application/users?filter[email]=${Uri.encodeComponent(email)}';
@@ -41,6 +43,10 @@ class AuthRepository {
           final userId = userAttr['id'];
           final isAdmin = userAttr['root_admin'] == true;
           
+          // Save credentials for later Client API calls
+          await storage.write(key: 'user_email', value: email);
+          await storage.write(key: 'user_password', value: password);
+
           return {
             'access_token': 'ptero_session_${userId}_${DateTime.now().millisecondsSinceEpoch}',
             'user': {
@@ -87,5 +93,7 @@ class AuthRepository {
   Future<void> logout() async {
     await storage.delete(key: 'auth_token');
     await storage.delete(key: 'user');
+    await storage.delete(key: 'user_email');
+    await storage.delete(key: 'user_password');
   }
 }

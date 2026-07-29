@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../../core/api_client.dart';
@@ -36,6 +37,53 @@ class ServerRepository {
     return map;
   }
 
+  /// Returns a map of nodeId -> FQDN from the Application API
+  Future<Map<int, String>> _getNodeFqdnMap(String appKey) async {
+    final map = <int, String>{};
+    try {
+      final res = await _directDio.get(
+        '${Constants.panelUrl}/api/application/nodes',
+        options: Options(headers: {
+          'Authorization': 'Bearer $appKey',
+          'Accept': 'application/json',
+        }),
+      );
+      final list = res.data['data'] as List?;
+      if (list != null) {
+        for (var item in list) {
+          final attrs = item['attributes'];
+          if (attrs != null && attrs['id'] != null) {
+            final id = (attrs['id'] as num).toInt();
+            final fqdn = attrs['fqdn']?.toString() ?? '';
+            if (fqdn.isNotEmpty) map[id] = fqdn;
+          }
+        }
+      }
+    } catch (_) {}
+    return map;
+  }
+
+  /// Checks which node IDs are offline by probing their HTTPS endpoint
+  Future<Set<int>> _getOfflineNodeIds(Map<int, String> fqdnMap) async {
+    final offlineIds = <int>{};
+    final probes = fqdnMap.entries.map((entry) async {
+      try {
+        await _directDio.get(
+          'https://${entry.value}',
+          options: Options(
+            connectTimeout: const Duration(seconds: 5),
+            receiveTimeout: const Duration(seconds: 5),
+            validateStatus: (s) => s != null && s > 0,
+          ),
+        );
+      } catch (_) {
+        offlineIds.add(entry.key);
+      }
+    });
+    await Future.wait(probes);
+    return offlineIds;
+  }
+
   Future<List<Server>> getServers() async {
     try {
       final res = await ApiClient.dio.get('/servers');
@@ -45,7 +93,15 @@ class ServerRepository {
       // Fallback: Query Pterodactyl Application API directly
       try {
         const appKey = 'ptla_I4w35cvG1UEYzBRX7yQ4cKPHs4HZpz3NSqfZsgn7HCF';
-        final nodeMap = await _getNodeNamesMap(appKey);
+
+        // Fetch node names and FQDNs in parallel, then probe for offline nodes
+        final results = await Future.wait([
+          _getNodeNamesMap(appKey),
+          _getNodeFqdnMap(appKey),
+        ]);
+        final nodeMap = results[0] as Map<int, String>;
+        final fqdnMap = results[1] as Map<int, String>;
+        final offlineNodeIds = await _getOfflineNodeIds(fqdnMap);
 
         final userStr = await _storage.read(key: 'user');
         int? userId;
@@ -79,22 +135,39 @@ class ServerRepository {
           final nodeId = (attrs['node'] as num?)?.toInt() ?? 1;
           final resolvedNodeName = nodeMap[nodeId] ?? 'Node $nodeId';
 
+          // Use correct Pterodactyl 'suspended' field
+          final isSuspended = attrs['suspended'] == true || attrs['is_suspended'] == true;
+          final statusField = attrs['status']?.toString();
+
+          ServerStatus status;
+          if (offlineNodeIds.contains(nodeId)) {
+            // Node is unreachable — mark server as offline
+            status = ServerStatus.offline;
+          } else if (isSuspended) {
+            status = ServerStatus.suspended;
+          } else if (statusField == 'installing' || statusField == 'restoring_backup') {
+            status = ServerStatus.suspended;
+          } else {
+            status = ServerStatus.running;
+          }
+
           return Server(
             identifier: attrs['identifier'] ?? attrs['id']?.toString() ?? '',
             uuid: attrs['uuid'] ?? '',
             name: attrs['name'] ?? 'Minecraft Server',
-            status: attrs['is_suspended'] == true ? ServerStatus.suspended : ServerStatus.running,
+            status: status,
             memory: (attrs['limits']?['memory'] as num?)?.toInt() ?? 2048,
             disk: (attrs['limits']?['disk'] as num?)?.toInt() ?? 10240,
             cpu: (attrs['limits']?['cpu'] as num?)?.toInt() ?? 100,
             node: resolvedNodeName,
-            isSuspended: attrs['is_suspended'] == true,
+            isSuspended: isSuspended,
           );
         }).toList();
       } catch (directError) {
         return [];
       }
     }
+
   }
 
   Future<Server> getServer(String identifier) async {
@@ -136,12 +209,125 @@ class ServerRepository {
     try {
       final res = await ApiClient.dio.get('/servers/$identifier/websocket');
       return res.data as Map<String, dynamic>;
-    } catch (_) {
-      return {
-        'token': 'demo_ws_token',
-        'socket': 'wss://panel.rencloud.online/api/client/servers/$identifier/ws'
-      };
+    } catch (_) {}
+
+    // Fallback: Use Pterodactyl Client API with cookie session
+    try {
+      final email = await _storage.read(key: 'user_email') ?? '';
+      final password = await _storage.read(key: 'user_password') ?? '';
+
+      if (email.isEmpty || password.isEmpty) {
+        return _buildFallbackWsUrl(identifier);
+      }
+
+      // Step 1: Get CSRF token
+      final cookieJar = <String, String>{};
+
+      final csrfRes = await _directDio.get(
+        '${Constants.panelUrl}/auth/login',
+        options: Options(
+          headers: {'Accept': 'text/html'},
+          followRedirects: false,
+          validateStatus: (s) => s != null && s < 500,
+        ),
+      );
+
+      // Extract XSRF-TOKEN cookie
+      final rawCookies = csrfRes.headers.map['set-cookie'] ?? [];
+      String? xsrfToken;
+      for (final c in rawCookies) {
+        if (c.startsWith('XSRF-TOKEN=')) {
+          xsrfToken = Uri.decodeComponent(c.split(';')[0].split('=').skip(1).join('='));
+          cookieJar['XSRF-TOKEN'] = xsrfToken;
+        }
+        if (c.startsWith('rencloud_session=') || c.startsWith('pterodactyl_session=')) {
+          final sessionCookiePart = c.split(';')[0];
+          cookieJar[sessionCookiePart.split('=')[0]] = sessionCookiePart.split('=').skip(1).join('=');
+        }
+      }
+
+      if (xsrfToken == null) {
+        return _buildFallbackWsUrl(identifier);
+      }
+
+      // Step 2: POST login
+      final cookieHeader = cookieJar.entries.map((e) => '${e.key}=${e.value}').join('; ');
+      final loginRes = await _directDio.post(
+        '${Constants.panelUrl}/auth/login',
+        data: jsonEncode({'user': email, 'password': password}),
+        options: Options(
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-XSRF-TOKEN': xsrfToken,
+            'Cookie': cookieHeader,
+          },
+          followRedirects: false,
+          validateStatus: (s) => s != null && s < 500,
+        ),
+      );
+
+      // Collect session cookies from login response
+      final loginCookies = loginRes.headers.map['set-cookie'] ?? [];
+      for (final c in loginCookies) {
+        final parts = c.split(';')[0].split('=');
+        if (parts.length >= 2) {
+          cookieJar[parts[0]] = parts.skip(1).join('=');
+        }
+      }
+
+      // Step 3: Call Client API websocket endpoint with session
+      final sessionCookieHeader = cookieJar.entries.map((e) => '${e.key}=${e.value}').join('; ');
+      final wsRes = await _directDio.get(
+        '${Constants.panelUrl}/api/client/servers/$identifier/websocket',
+        options: Options(
+          headers: {
+            'Accept': 'application/json',
+            'Cookie': sessionCookieHeader,
+            'X-XSRF-TOKEN': xsrfToken,
+          },
+          validateStatus: (s) => s != null && s < 500,
+        ),
+      );
+
+      if (wsRes.statusCode == 200 && wsRes.data['data'] != null) {
+        final wsData = wsRes.data['data'];
+        String socketUrl = wsData['socket']?.toString() ?? '';
+        final token = wsData['token']?.toString() ?? '';
+
+        // Ensure the URL uses wss:// not https://
+        socketUrl = _fixWsUrl(socketUrl);
+
+        if (socketUrl.isNotEmpty && token.isNotEmpty) {
+          return {'socket': socketUrl, 'token': token};
+        }
+      }
+    } catch (_) {}
+
+    return _buildFallbackWsUrl(identifier);
+  }
+
+  String _fixWsUrl(String url) {
+    // Convert https:// -> wss:// and http:// -> ws://
+    if (url.startsWith('https://')) {
+      url = 'wss://' + url.substring('https://'.length);
+    } else if (url.startsWith('http://')) {
+      url = 'ws://' + url.substring('http://'.length);
     }
+    // Remove port 0 which is invalid
+    url = url.replaceAll(':0/', '/').replaceAll(':0#', '#');
+    // Remove trailing fragment identifiers that break WebSocket
+    if (url.contains('#')) {
+      url = url.split('#')[0];
+    }
+    return url;
+  }
+
+  Map<String, dynamic> _buildFallbackWsUrl(String identifier) {
+    return {
+      'token': '',
+      'socket': 'wss://panel.rencloud.online/api/client/servers/$identifier/ws'
+    };
   }
 
   Future<List<ServerFile>> listFiles(String identifier, String directory) async {

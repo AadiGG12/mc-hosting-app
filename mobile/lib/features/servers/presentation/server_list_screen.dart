@@ -308,7 +308,16 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
 
   Widget _buildServerCard(BuildContext context, Server s) {
     final isOnline = s.status == ServerStatus.running;
-    final statusColor = isOnline ? AppTheme.primaryAccent : Colors.redAccent;
+    final isOffline = s.status == ServerStatus.offline;
+    final isSuspended = s.status == ServerStatus.suspended;
+
+    final statusColor = isOnline
+        ? AppTheme.primaryAccent
+        : isOffline
+            ? Colors.grey
+            : isSuspended
+                ? Colors.orange
+                : Colors.redAccent;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
