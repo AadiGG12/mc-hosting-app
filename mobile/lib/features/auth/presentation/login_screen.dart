@@ -62,40 +62,50 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       }
     });
 
-    return Scaffold(
-      backgroundColor: AppTheme.scaffoldBg,
+    return GradientScaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        actions: const [
+          ThemeToggleButton(),
+          SizedBox(width: 8),
+        ],
+      ),
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryAccent.withOpacity(0.15),
-                  shape: BoxShape.circle,
+              // Logo Image from assets
+              Image.asset(
+                'assets/images/logo.png',
+                height: 90,
+                errorBuilder: (context, error, stackTrace) => Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryAccent.withOpacity(0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.cloud, size: 54, color: AppTheme.primaryAccent),
                 ),
-                child: const Icon(Icons.cloud, size: 48, color: AppTheme.primaryAccent),
               ),
               const SizedBox(height: 16),
               const Text(
                 'RenCloud',
                 style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 28,
+                  fontSize: 30,
                   fontWeight: FontWeight.bold,
-                  letterSpacing: 1,
+                  letterSpacing: 1.2,
                 ),
               ),
               const SizedBox(height: 6),
-              const Text(
-                'Minecraft Hosting & Server Control',
-                style: TextStyle(color: Colors.grey, fontSize: 13),
+              Text(
+                'Minecraft Hosting & Control Panel',
+                style: TextStyle(color: Colors.grey.shade400, fontSize: 13),
               ),
               const SizedBox(height: 32),
               Card(
-                color: AppTheme.cardBg,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
                   side: BorderSide(color: Colors.white.withOpacity(0.08)),
@@ -106,10 +116,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     children: [
                       TextField(
                         controller: _emailCtrl,
-                        style: const TextStyle(color: Colors.white),
                         decoration: InputDecoration(
                           hintText: 'Pterodactyl Email',
-                          hintStyle: const TextStyle(color: Colors.grey),
                           prefixIcon: const Icon(Icons.email_outlined, color: AppTheme.secondary),
                           filled: true,
                           fillColor: AppTheme.surface,
@@ -123,10 +131,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       TextField(
                         controller: _passCtrl,
                         obscureText: true,
-                        style: const TextStyle(color: Colors.white),
                         decoration: InputDecoration(
                           hintText: 'Pterodactyl Password',
-                          hintStyle: const TextStyle(color: Colors.grey),
                           prefixIcon: const Icon(Icons.lock_outline, color: AppTheme.secondary),
                           filled: true,
                           fillColor: AppTheme.surface,
@@ -165,7 +171,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   height: 20,
                                   child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                                 )
-                              : const Text('Login to Panel', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                              : const Text(
+                                  'Login to Panel',
+                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                ),
                         ),
                       ),
                     ],
@@ -200,7 +209,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       children: [
                         TextField(
                           controller: _serverCtrl,
-                          style: const TextStyle(color: Colors.white, fontSize: 13),
+                          style: const TextStyle(fontSize: 13),
                           decoration: InputDecoration(
                             labelText: 'API Server Endpoint URL',
                             labelStyle: const TextStyle(color: Colors.grey),

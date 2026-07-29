@@ -54,13 +54,13 @@ class _ServerDetailScreenState extends ConsumerState<ServerDetailScreen> {
   Widget build(BuildContext context) {
     final serverAsync = ref.watch(serverProvider(widget.serverId));
 
-    return Scaffold(
-      backgroundColor: AppTheme.scaffoldBg,
+    return GradientScaffold(
       appBar: AppBar(
         title: const Text('Server Management'),
-        backgroundColor: AppTheme.surface,
+        backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
+          const ThemeToggleButton(),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () => ref.refresh(serverProvider(widget.serverId)),
@@ -121,10 +121,8 @@ class _ServerDetailScreenState extends ConsumerState<ServerDetailScreen> {
     final statusColor = isOnline ? AppTheme.primaryAccent : Colors.redAccent;
 
     return Card(
-      color: AppTheme.cardBg,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        side: BorderSide(color: Colors.white.withOpacity(0.08)),
       ),
       child: Padding(
         padding: const EdgeInsets.all(20.0),
@@ -140,7 +138,6 @@ class _ServerDetailScreenState extends ConsumerState<ServerDetailScreen> {
                     style: const TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
                     ),
                   ),
                 ),
@@ -204,7 +201,6 @@ class _ServerDetailScreenState extends ConsumerState<ServerDetailScreen> {
         Text(
           value,
           style: const TextStyle(
-            color: Colors.white,
             fontWeight: FontWeight.bold,
             fontSize: 15,
           ),
@@ -220,10 +216,8 @@ class _ServerDetailScreenState extends ConsumerState<ServerDetailScreen> {
 
   Widget _buildPowerControlsCard() {
     return Card(
-      color: AppTheme.cardBg,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: Colors.white.withOpacity(0.08)),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -319,10 +313,8 @@ class _ServerDetailScreenState extends ConsumerState<ServerDetailScreen> {
         final color = mod['color'] as Color;
 
         return Card(
-          color: AppTheme.cardBg,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
-            side: BorderSide(color: Colors.white.withOpacity(0.08)),
           ),
           child: InkWell(
             borderRadius: BorderRadius.circular(16),
@@ -345,7 +337,6 @@ class _ServerDetailScreenState extends ConsumerState<ServerDetailScreen> {
                   Text(
                     mod['title'] as String,
                     style: const TextStyle(
-                      color: Colors.white,
                       fontWeight: FontWeight.bold,
                       fontSize: 15,
                     ),

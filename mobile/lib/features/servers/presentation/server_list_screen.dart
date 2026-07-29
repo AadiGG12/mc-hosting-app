@@ -12,16 +12,16 @@ class ServerListScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final serversAsync = ref.watch(serversProvider);
 
-    return Scaffold(
-      backgroundColor: AppTheme.scaffoldBg,
+    return GradientScaffold(
       appBar: AppBar(
         title: const Text(
           'My Servers',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        backgroundColor: AppTheme.surface,
+        backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
+          const ThemeToggleButton(),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () => ref.refresh(serversProvider),
@@ -74,11 +74,11 @@ class ServerListScreen extends ConsumerWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.dns_outlined, size: 64, color: Colors.grey.shade700),
+          Icon(Icons.dns_outlined, size: 64, color: Colors.grey.shade600),
           const SizedBox(height: 16),
           const Text(
             'No Minecraft Servers Yet',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           const Text(
@@ -102,11 +102,9 @@ class ServerListScreen extends ConsumerWidget {
     final statusColor = isOnline ? AppTheme.primaryAccent : Colors.redAccent;
 
     return Card(
-      color: AppTheme.cardBg,
       margin: const EdgeInsets.only(bottom: 16),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: Colors.white.withOpacity(0.08)),
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
@@ -125,7 +123,6 @@ class ServerListScreen extends ConsumerWidget {
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -194,7 +191,7 @@ class ServerListScreen extends ConsumerWidget {
             const SizedBox(width: 4),
             Text(
               value,
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13),
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
             ),
           ],
         ),
