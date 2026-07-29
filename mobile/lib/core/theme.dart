@@ -49,7 +49,17 @@ class AppTheme {
       scaffoldBackgroundColor: Colors.transparent,
       primaryColor: primaryAccent,
       cardColor: darkCardBg,
-      textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
+      textTheme: GoogleFonts.interTextTheme(
+        ThemeData.dark().textTheme.copyWith(
+          headlineLarge: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+          headlineMedium: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          titleLarge: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+          titleMedium: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+          bodyLarge: const TextStyle(fontSize: 12),
+          bodyMedium: const TextStyle(fontSize: 11),
+          bodySmall: const TextStyle(fontSize: 9),
+        ),
+      ),
       colorScheme: const ColorScheme.dark(
         primary: primaryAccent,
         secondary: secondary,
@@ -62,7 +72,8 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+          textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
         ),
       ),
       cardTheme: CardTheme(
@@ -82,7 +93,17 @@ class AppTheme {
       scaffoldBackgroundColor: Colors.transparent,
       primaryColor: primaryAccent,
       cardColor: lightCardBg,
-      textTheme: GoogleFonts.interTextTheme(ThemeData.light().textTheme),
+      textTheme: GoogleFonts.interTextTheme(
+        ThemeData.light().textTheme.copyWith(
+          headlineLarge: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+          headlineMedium: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          titleLarge: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+          titleMedium: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+          bodyLarge: const TextStyle(fontSize: 12),
+          bodyMedium: const TextStyle(fontSize: 11),
+          bodySmall: const TextStyle(fontSize: 9),
+        ),
+      ),
       colorScheme: const ColorScheme.light(
         primary: primaryAccent,
         secondary: secondary,

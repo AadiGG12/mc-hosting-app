@@ -27,6 +27,7 @@ import '../features/admin/presentation/admin_nests_screen.dart';
 import '../features/admin/presentation/admin_plans_screen.dart';
 import '../features/admin/presentation/plan_form_screen.dart';
 import '../features/admin/presentation/admin_orders_screen.dart';
+import '../features/splash/presentation/splash_screen.dart';
 import '../features/home/presentation/home_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -34,8 +35,11 @@ final routerProvider = Provider<GoRouter>((ref) {
   final isAdmin = ref.watch(isAdminProvider);
 
   return GoRouter(
-    initialLocation: '/',
+    initialLocation: '/splash',
     redirect: (context, state) {
+      final isSplash = state.matchedLocation == '/splash';
+      if (isSplash) return null;
+      
       final isLoggingIn = state.matchedLocation == '/login';
       if (authState is AuthUnauthenticated && !isLoggingIn) return '/login';
       if (authState is AuthAuthenticated && isLoggingIn) return '/home/plans';
@@ -44,6 +48,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
+      GoRoute(
+        path: '/splash',
+        builder: (context, state) => const SplashScreen(),
+      ),
       GoRoute(
         path: '/login',
         builder: (context, state) => const LoginScreen(),

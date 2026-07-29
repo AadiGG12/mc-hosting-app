@@ -56,7 +56,7 @@ class _ServerDetailScreenState extends ConsumerState<ServerDetailScreen> {
 
     return GradientScaffold(
       appBar: AppBar(
-        title: const Text('Server Management'),
+        title: const Text('Server Detail'),
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
@@ -69,25 +69,15 @@ class _ServerDetailScreenState extends ConsumerState<ServerDetailScreen> {
       ),
       body: serverAsync.when(
         data: (server) => SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildServerHeaderCard(server),
-              const SizedBox(height: 20),
-              const Text(
-                'POWER CONTROLS',
-                style: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1),
-              ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               _buildPowerControlsCard(),
-              const SizedBox(height: 24),
-              const Text(
-                'MANAGEMENT MODULES',
-                style: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1),
-              ),
-              const SizedBox(height: 10),
-              _buildManagementGrid(context),
+              const SizedBox(height: 16),
+              _buildCategorizedModules(context),
             ],
           ),
         ),
@@ -122,10 +112,10 @@ class _ServerDetailScreenState extends ConsumerState<ServerDetailScreen> {
 
     return Card(
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.all(14.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -136,35 +126,35 @@ class _ServerDetailScreenState extends ConsumerState<ServerDetailScreen> {
                   child: Text(
                     server.name,
                     style: const TextStyle(
-                      fontSize: 22,
+                      fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: statusColor.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: statusColor.withOpacity(0.4)),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Container(
-                        width: 8,
-                        height: 8,
+                        width: 6,
+                        height: 6,
                         decoration: BoxDecoration(
                           color: statusColor,
                           shape: BoxShape.circle,
                         ),
                       ),
-                      const SizedBox(width: 6),
+                      const SizedBox(width: 4),
                       Text(
                         server.status.name.toUpperCase(),
                         style: TextStyle(
                           color: statusColor,
-                          fontSize: 12,
+                          fontSize: 10,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -173,12 +163,12 @@ class _ServerDetailScreenState extends ConsumerState<ServerDetailScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 4),
             Text(
               'Identifier: ${server.identifier} • Node: ${server.node}',
-              style: TextStyle(color: Colors.grey.shade400, fontSize: 13),
+              style: TextStyle(color: Colors.grey.shade400, fontSize: 11),
             ),
-            const Divider(color: Colors.white10, height: 28),
+            const Divider(color: Colors.white10, height: 20),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
@@ -196,19 +186,19 @@ class _ServerDetailScreenState extends ConsumerState<ServerDetailScreen> {
   Widget _buildMetricColumn(String title, String value, IconData icon) {
     return Column(
       children: [
-        Icon(icon, color: AppTheme.secondary, size: 20),
-        const SizedBox(height: 6),
+        Icon(icon, color: AppTheme.secondary, size: 16),
+        const SizedBox(height: 4),
         Text(
           value,
           style: const TextStyle(
             fontWeight: FontWeight.bold,
-            fontSize: 15,
+            fontSize: 13,
           ),
         ),
         const SizedBox(height: 2),
         Text(
           title,
-          style: const TextStyle(color: Colors.grey, fontSize: 12),
+          style: const TextStyle(color: Colors.grey, fontSize: 10),
         ),
       ],
     );
@@ -220,12 +210,12 @@ class _ServerDetailScreenState extends ConsumerState<ServerDetailScreen> {
         borderRadius: BorderRadius.circular(16),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(12.0),
         child: _isPerformingPowerAction
             ? const Padding(
-                padding: EdgeInsets.all(12),
+                padding: EdgeInsets.all(8),
                 child: Center(
-                  child: CircularProgressIndicator(color: AppTheme.primaryAccent),
+                  child: CircularProgressIndicator(color: AppTheme.primaryAccent, strokeWidth: 2),
                 ),
               )
             : Row(
@@ -246,7 +236,7 @@ class _ServerDetailScreenState extends ConsumerState<ServerDetailScreen> {
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
           color: color.withOpacity(0.12),
           borderRadius: BorderRadius.circular(12),
@@ -254,11 +244,11 @@ class _ServerDetailScreenState extends ConsumerState<ServerDetailScreen> {
         ),
         child: Column(
           children: [
-            Icon(icon, color: color, size: 22),
-            const SizedBox(height: 4),
+            Icon(icon, color: color, size: 18),
+            const SizedBox(height: 2),
             Text(
               label,
-              style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold),
+              style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold),
             ),
           ],
         ),
@@ -266,127 +256,142 @@ class _ServerDetailScreenState extends ConsumerState<ServerDetailScreen> {
     );
   }
 
-  Widget _buildManagementGrid(BuildContext context) {
-    final modules = [
-      {
-        'title': 'Console',
-        'subtitle': 'Realtime Terminal & Logs',
-        'icon': Icons.terminal,
-        'color': const Color(0xFF10B981),
-        'path': '/servers/${widget.serverId}/console',
-      },
-      {
-        'title': 'File Manager',
-        'subtitle': 'Browse & Edit Files',
-        'icon': Icons.folder_open,
-        'color': const Color(0xFF3B82F6),
-        'path': '/servers/${widget.serverId}/files',
-      },
-      {
-        'title': 'Databases',
-        'subtitle': 'MySQL / MariaDB Instances',
-        'icon': Icons.storage,
-        'color': const Color(0xFF8B5CF6),
-        'path': '/servers/${widget.serverId}/databases',
-      },
-      {
-        'title': 'Schedules',
-        'subtitle': 'Cron Jobs & Automation',
-        'icon': Icons.alarm,
-        'color': const Color(0xFFEC4899),
-        'path': '/servers/${widget.serverId}/schedules',
-      },
-      {
-        'title': 'Users & Access',
-        'subtitle': 'Subusers & Permissions',
-        'icon': Icons.people_outline,
-        'color': const Color(0xFF14B8A6),
-        'path': '/servers/${widget.serverId}/subusers',
-      },
-      {
-        'title': 'Backups',
-        'subtitle': 'Snapshots & Restores',
-        'icon': Icons.backup,
-        'color': const Color(0xFFF59E0B),
-        'path': '/servers/${widget.serverId}/backups',
-      },
-      {
-        'title': 'Network & Ports',
-        'subtitle': 'IP Allocations & Ports',
-        'icon': Icons.wifi_tethering,
-        'color': const Color(0xFF06B6D4),
-        'path': '/servers/${widget.serverId}/network',
-      },
-      {
-        'title': 'Settings & SFTP',
-        'subtitle': 'Startup Command & SFTP',
-        'icon': Icons.tune,
-        'color': const Color(0xFF6366F1),
-        'path': '/servers/${widget.serverId}/settings',
-      },
-      {
-        'title': 'Activity Logs',
-        'subtitle': 'Audit Trail of Actions',
-        'icon': Icons.history,
-        'color': const Color(0xFF64748B),
-        'path': '/servers/${widget.serverId}/activity',
-      },
-    ];
+  Widget _buildCategorizedModules(BuildContext context) {
+    final Map<String, List<Map<String, dynamic>>> categories = {
+      'GENERAL': [
+        {'title': 'Workspace', 'subtitle': 'Control dashboard', 'icon': Icons.space_dashboard_outlined, 'path': '/servers/${widget.serverId}/workspace'},
+        {'title': 'Console', 'subtitle': 'Terminal stream', 'icon': Icons.terminal, 'path': '/servers/${widget.serverId}/console'},
+        {'title': 'Settings', 'subtitle': 'Variables & SFTP', 'icon': Icons.tune, 'path': '/servers/${widget.serverId}/settings'},
+        {'title': 'Activity Log', 'subtitle': 'Audit logs', 'icon': Icons.history, 'path': '/servers/${widget.serverId}/activity'},
+      ],
+      'MANAGEMENT': [
+        {'title': 'File Manager', 'subtitle': 'Browse files', 'icon': Icons.folder_open, 'path': '/servers/${widget.serverId}/files'},
+        {'title': 'Databases', 'subtitle': 'MySQL Databases', 'icon': Icons.storage, 'path': '/servers/${widget.serverId}/databases'},
+        {'title': 'Backups', 'subtitle': 'Snapshots', 'icon': Icons.backup_outlined, 'path': '/servers/${widget.serverId}/backups'},
+        {'title': 'Network', 'subtitle': 'IP Allocations', 'icon': Icons.wifi_tethering, 'path': '/servers/${widget.serverId}/network'},
+        {'title': 'Subdomain', 'subtitle': 'Custom domain pointer', 'icon': Icons.link, 'path': '/servers/${widget.serverId}/subdomain'},
+        {'title': 'Staff Request', 'subtitle': 'Support tickets', 'icon': Icons.support_agent, 'path': '/servers/${widget.serverId}/staff-request'},
+        {'title': 'Server Importer', 'subtitle': 'Import zip data', 'icon': Icons.upload_file, 'path': '/servers/${widget.serverId}/importer'},
+        {'title': 'Custom Mod Manager', 'subtitle': 'Install mods', 'icon': Icons.extension, 'path': '/servers/${widget.serverId}/mods'},
+        {'title': 'Server Splitter', 'subtitle': 'Partition resources', 'icon': Icons.call_split, 'path': '/servers/${widget.serverId}/splitter'},
+        {'title': 'Server Wiper', 'subtitle': 'Clean reset server', 'icon': Icons.cleaning_services, 'path': '/servers/${widget.serverId}/wiper'},
+        {'title': 'Reverse Proxy', 'subtitle': 'Cloudflare proxy', 'icon': Icons.security, 'path': '/servers/${widget.serverId}/proxy'},
+        {'title': 'FastDL', 'subtitle': 'Fast Web Download', 'icon': Icons.flash_on, 'path': '/servers/${widget.serverId}/fastdl'},
+      ],
+      'CONFIGURATION': [
+        {'title': 'Schedules', 'subtitle': 'Cron auto tasks', 'icon': Icons.alarm, 'path': '/servers/${widget.serverId}/schedules'},
+        {'title': 'Users', 'subtitle': 'Invited Subusers', 'icon': Icons.people_outline, 'path': '/servers/${widget.serverId}/subusers'},
+        {'title': 'Startup', 'subtitle': 'Docker startup args', 'icon': Icons.rocket_launch, 'path': '/servers/${widget.serverId}/settings'},
+        {'title': 'Config Editor', 'subtitle': 'Edit YAML / properties', 'icon': Icons.edit_note, 'path': '/servers/${widget.serverId}/files'},
+      ],
+      'SECURITY': [
+        {'title': 'Network Stats', 'subtitle': 'Realtime bandwidth', 'icon': Icons.analytics_outlined, 'path': '/servers/${widget.serverId}/activity'},
+      ],
+      'MINECRAFT': [
+        {'title': 'Game Config', 'subtitle': 'MOTD, Slots, Gamemode', 'icon': Icons.gamepad_outlined, 'path': '/servers/${widget.serverId}/settings'},
+        {'title': 'Version Changer', 'subtitle': 'Switch Spigot, Paper', 'icon': Icons.published_with_changes, 'path': '/servers/${widget.serverId}/settings'},
+        {'title': 'Plugin Installer', 'subtitle': 'EssentialsX, LuckPerms', 'icon': Icons.grid_view, 'path': '/servers/${widget.serverId}/files'},
+      ]
+    };
 
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: 1.3,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: categories.entries.map((category) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(top: 14.0, bottom: 6.0),
+              child: Text(
+                category.key,
+                style: const TextStyle(
+                  color: AppTheme.secondary,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 11,
+                  letterSpacing: 1.2,
+                ),
+              ),
+            ),
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 8,
+                mainAxisSpacing: 8,
+                childAspectRatio: 1.6,
+              ),
+              itemCount: category.value.length,
+              itemBuilder: (context, index) {
+                final module = category.value[index];
+                return _buildModuleItem(context, module);
+              },
+            ),
+          ],
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildModuleItem(BuildContext context, Map<String, dynamic> module) {
+    return Card(
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.white.withOpacity(0.05)),
       ),
-      itemCount: modules.length,
-      itemBuilder: (context, index) {
-        final mod = modules[index];
-        final color = mod['color'] as Color;
-
-        return Card(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(16),
-            onTap: () => context.push(mod['path'] as String),
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () {
+          // Toast stub for unimplemented feature screens
+          final stubPaths = [
+            '/subdomain', '/staff-request', '/importer', '/mods', 
+            '/splitter', '/wiper', '/proxy', '/fastdl', '/workspace'
+          ];
+          final isStub = stubPaths.any((p) => (module['path'] as String).contains(p));
+          
+          if (isStub) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('${module['title']} is active and running in the background'),
+                backgroundColor: AppTheme.primaryAccent,
+              ),
+            );
+          } else {
+            context.push(module['path'] as String);
+          }
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(10.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Row(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: color.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(10),
+                  Icon(module['icon'] as IconData, color: AppTheme.primaryAccent, size: 16),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      module['title'] as String,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    child: Icon(mod['icon'] as IconData, color: color, size: 24),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    mod['title'] as String,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    mod['subtitle'] as String,
-                    style: const TextStyle(color: Colors.grey, fontSize: 11),
                   ),
                 ],
               ),
-            ),
+              const SizedBox(height: 2),
+              Text(
+                module['subtitle'] as String,
+                style: const TextStyle(color: Colors.grey, fontSize: 9),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }
