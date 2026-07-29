@@ -12,6 +12,11 @@ class AppTheme {
   static const Color darkCardBg = Color(0xFF0F172A);
   static const Color darkSurface = Color(0xFF1E293B);
 
+  // Backward compatibility aliases
+  static const Color cardBg = Color(0xFF0F172A);
+  static const Color surface = Color(0xFF1E293B);
+  static const Color scaffoldBg = Color(0xFF060913);
+
   // Light Mode Colors
   static const Color lightScaffoldBg = Color(0xFFF8FAFC);
   static const Color lightCardBg = Color(0xFFFFFFFF);
